@@ -6,7 +6,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Set;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -146,53 +148,60 @@ public class ProdottoDao implements ProdottoDaoInterfaccia{
 
 	@Override
 	public synchronized ArrayList<ProdottoBean> doRetrieveAll(String order) throws SQLException {
-		Connection connection = null;
-		PreparedStatement preparedStatement = null;
+	    Connection connection = null;
+	    PreparedStatement preparedStatement = null;
+	    ResultSet rs = null;
+	    ArrayList<ProdottoBean> products = new ArrayList<>();
 
-		ArrayList<ProdottoBean> products = new ArrayList<ProdottoBean>();
+	    String selectSQL = "SELECT * FROM " + ProdottoDao.TABLE_NAME;
 
-		String selectSQL = "SELECT * FROM " + ProdottoDao.TABLE_NAME;
+	    // Verifica se l'ordinamento è specificato correttamente e se è tra quelli consentiti
+	    if (order != null && isValidOrder(order)) {
+	        selectSQL += " ORDER BY " + order;
+	    } else {
+	        // In alternativa, puoi gestire il caso in cui l'ordinamento specificato non è valido
+	        throw new IllegalArgumentException("Invalid order parameter");
+	    }
 
-		if (order != null && !order.equals("")) {
-			selectSQL += " ORDER BY " + order;
-		}
+	    try {
+	        connection = ds.getConnection();
+	        preparedStatement = connection.prepareStatement(selectSQL);
+	        rs = preparedStatement.executeQuery();
 
-		try {
-			connection = ds.getConnection();
-			preparedStatement = connection.prepareStatement(selectSQL);
-
-			ResultSet rs = preparedStatement.executeQuery();
-
-			while (rs.next()) {
-				ProdottoBean bean = new ProdottoBean();
-
-				bean.setIdProdotto(rs.getInt("ID_PRODOTTO"));
-				bean.setNome(rs.getString("NOME"));
-				bean.setDescrizione(rs.getString("DESCRIZIONE"));
-				bean.setPrezzo(rs.getDouble("PREZZO"));
-				bean.setQuantità(rs.getInt("QUANTITA"));
-				bean.setPiattaforma(rs.getString("PIATTAFORMA"));
-				bean.setIva(rs.getString("IVA"));
-				bean.setDataUscita(rs.getString("DATA_USCITA"));
-				bean.setInVendita(rs.getBoolean("IN_VENDITA"));
-				bean.setImmagine(rs.getString("IMMAGINE"));
-				bean.setGenere(rs.getString("GENERE"));
-				bean.setDescrizioneDettagliata(rs.getString("DESCRIZIONE_DETTAGLIATA"));
-
-				products.add(bean);
-			}
-
-		} finally {
-			try {
-				if (preparedStatement != null)
-					preparedStatement.close();
-			} finally {
-				if (connection != null)
-					connection.close();
-			}
-		}
-		return products;
+	        while (rs.next()) {
+	            ProdottoBean bean = new ProdottoBean();
+	            // Imposta i valori del bean utilizzando i valori del ResultSet
+	            products.add(bean);
+	        }
+	    } finally {
+	        try {
+	            if (rs != null)
+	                rs.close();
+	        } finally {
+	            try {
+	                if (preparedStatement != null)
+	                    preparedStatement.close();
+	            } finally {
+	                if (connection != null)
+	                    connection.close();
+	            }
+	        }
+	    }
+	    return products;
 	}
+
+	// Metodo per verificare se l'ordinamento specificato è valido
+	private boolean isValidOrder(String order) {
+		 Set<String> validOrders = new HashSet<>();
+		    validOrders.add("nome");
+		    validOrders.add("prezzo");
+		    validOrders.add("data_uscita");
+		    // Aggiungi altri valori di ordinamento consentiti se necessario
+
+		    // Verifica se l'ordinamento specificato è presente nell'insieme di valori consentiti
+		    return validOrders.contains(order.toLowerCase());
+	}
+
 	
 	@Override
 	public synchronized void doUpdateQnt(int id, int qnt) throws SQLException {
