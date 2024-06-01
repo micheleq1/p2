@@ -2,6 +2,7 @@ package it.unisa.model;
 
 import java.sql.Connection;
 import java.sql.Date;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -73,64 +74,50 @@ public class UserDao implements UserDaoInterfaccia {
 	}
 
 
-	@Override
-	public synchronized UserBean doRetrieve(String username, String password) throws SQLException {
-		//preparing some objects for connecNon 
-		Connection connection = null;
-		PreparedStatement preparedStatement = null;
-		
-		UserBean user = new UserBean();
-		
-		String searchQuery = "select * from " + UserDao.TABLE_NAME 
-							+ "	where username = ? "
-							+ " AND pwd = ? ";
-		
-		try
-			{
-			//connect to DB 
-			connection = ds.getConnection();
-			preparedStatement = connection.prepareStatement(searchQuery);
-			preparedStatement.setString(1, username);
-			preparedStatement.setString(2, password);
-			ResultSet rs = preparedStatement.executeQuery();
-			boolean more = rs.next();
-			// if user does not exist set the isValid variable to false
-				if (!more) 
-					user.setValid(false);
-		
-				//if user exists set the isValid variable to true
-				else if (more) 
-				{
-					user.setUsername(rs.getString("username"));
-					user.setPassword(rs.getString("pwd"));
-					user.setEmail(rs.getString("email"));
-					user.setNome(rs.getString("nome"));
-					user.setCognome(rs.getString("cognome"));
-					user.setDataDiNascita(rs.getDate("data_nascita"));
-					user.setCartaDiCredito(rs.getString("carta_credito"));
-					user.setIndirizzo(rs.getString("indirizzo"));
-					user.setCap(rs.getString("cap"));
-					user.setAmministratore(rs.getBoolean("amministratore"));
-					user.setValid(true);
-				}
-			}
-			catch (Exception ex) 
-			{
-				System.out.println("Log In failed: An Exception has occurred! " + ex); 
-			}
-			finally {
-				try {
-					if (preparedStatement != null)
-							preparedStatement.close();
-					} 
-			finally {
-				if (connection != null)
-					connection.close();
-			}
-	 }
+	 @Override
+	    public UserBean doRetrieve(String username, String password) throws SQLException {
+	        Connection connection = null;
+	        PreparedStatement preparedStatement = null;
+	        ResultSet resultSet = null;
+	        UserBean user = null;
 
-		return user;
-	}
+	        try {
+	            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/storage", "username", "password");
+	            String query = "SELECT * FROM cliente WHERE username = ? AND pwd = ?";
+	            preparedStatement = connection.prepareStatement(query);
+	            preparedStatement.setString(1, username);
+	            preparedStatement.setString(2, password);
+	            resultSet = preparedStatement.executeQuery();
+
+	            if (resultSet.next()) {
+	                user = new UserBean();
+	                user.setEmail(resultSet.getString("email"));
+	                user.setUsername(resultSet.getString("username"));
+	                user.setPassword(resultSet.getString("pwd"));
+	                user.setNome(resultSet.getString("nome"));
+	                user.setCognome(resultSet.getString("cognome"));
+	                user.setDataDiNascita(resultSet.getDate("data_nascita"));
+	                user.setAmministratore(resultSet.getBoolean("amministratore"));
+	                user.setCartaDiCredito(resultSet.getString("carta_credito"));
+	                user.setIndirizzo(resultSet.getString("indirizzo"));
+	                user.setCap(resultSet.getString("cap"));
+	            }
+	        } finally {
+	            if (resultSet != null) {
+	                resultSet.close();
+	            }
+	            if (preparedStatement != null) {
+	                preparedStatement.close();
+	            }
+	            if (connection != null) {
+	                connection.close();
+	            }
+	        }
+
+	        return user;
+	    }
+	
+
 	
 	@Override
 	public synchronized ArrayList<UserBean> doRetrieveAll(String order) throws SQLException {
