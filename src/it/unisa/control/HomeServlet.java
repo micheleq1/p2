@@ -24,7 +24,7 @@ public class HomeServlet extends HttpServlet {
 		"Home.jsp",
 		"Ps5.jsp",
 		"XboxSeries.jsp",
-		"Switch.jsp",
+		"Switch.jsp", 
 		"Ps4.jsp",
 		"XboxOne.jsp"
 	);
